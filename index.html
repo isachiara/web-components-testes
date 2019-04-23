@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<style>
+    howto-checkbox {
+        vertical-align: middle;
+    }
+
+    howto-label {
+        vertical-align: middle;
+        display: inline-block;
+        font-weight: bold;
+        font-family: sans-serif;
+        font-size: 20px;
+        margin-left: 8px;
+    }
+</style>
+
+<head>
+    <meta charset="utf-8">
+    <title>Web Components</title>
+</head>
+
+<body>
+    <howto-checkbox id="join-checkbox"></howto-checkbox>
+    <howto-label for="join-checkbox">Join Newsletter</howto-label>
+</body>
+
+<script>
+    (function () {
+
+        const KEYCODE = {
+            SPACE: 32,
+        };
+
+        //Clonar o conteúdo do template é melhor do que usar innerHTML porque evita "custos adicionais" de análise do HTML
+        const template = document.createElement('template');
+
+        template.innerHTML = `
+            <style>
+            :host {
+                display: inline-block;
+            
+                background-size: contain;
+                width: 24px;
+                height: 24px;
+            }
+            :host([hidden]) {
+                display: none;
+            }
+            :host([checked]) {
+               
+                background-size: contain;
+            }
+            :host([disabled]) {
+
+                background-size: contain;
+            }
+            :host([checked][disabled]) {
+                background-size: contain;
+            }
+            </style>
+                        `;
+
+        class HowToCheckbox extends HTMLElement {
+            static get observedAttributes() {
+                return ['checked', 'disabled'];
+            }
+
+            //como deve ser formado, executa sempre que uma instância é criada
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.shadowRoot.appendChild(template.content.cloneNode(true));
+            }
+
+            //como deve agir; definir as propriedades da instância antes do prototipo se conectar com a classe
+            connectedCallBack() {
+                if (!this.hasAttribute('role'))
+                    this.setAttribute('role', 'checkbox');
+                if (!this.hasAttribute('tabindex'))
+                    this.setAttribute('tabindex', 0);
+
+                this._upgradeProperty('checked');
+                this._upgradeProperty('disabled');
+
+                this.addEventListener('keyup', this._onKeyUp);
+                this.addEventListener('click', this._onClick);
+            }
+
+            //verifica todas as propriedades e as executará.
+            _upgradeProperty(prop) {
+                if (this.hasOwnProperty(prop)) {
+                    let value = this[prop];
+                    delete this[prop];
+                    this[prop] = value;
+                }
+            }
+
+            //executado quando o elemento for removido do DOM; limpar trabalhos, liberar referências.
+            disconnectedCallback() {
+                this.removeEventListener('keyup', this._onKeyUp);
+                this.removeEventListener('click', this._onClick);
+            }
+
+            //propriedades e atributos devem ser espelhados um ao outro. Uma ação de uma propriedade reflete no estado de um atributo.
+            set checked(value) {
+                const isChecked = Boolean(value);
+                if (isChecked)
+                    this.setAttribute('checked', '');
+                else
+                    this.removeAttribute('checked');
+            }
+
+            get checked() {
+                return this.hasAttribute('checked');
+            }
+
+            set disabled(value) {
+                const isDisabled = Boolean(value);
+                if (isDisabled)
+                    this.setAttribute('disabled', '');
+                else
+                    this.removeAttribute('disabled');
+            }
+
+            get disabled() {
+                return this.hasAttribute('disabled');
+            }
+
+            //quando o atributo é atualizado essa função é chamada
+            attributeChangedCallback(name, oldValue, newValue) {
+                const hasValue = newValue !== null;
+                switch (name) {
+                    case 'checked':
+                        this.setAttribute('aria-checked', hasValue);
+                        break;
+                    case 'disabled':
+                        this.setAttribute('aria-disabled', hasValue);
+                        if (hasValue) {
+                            this.removeAttribute('tabindex'); //remover este atributo desabilita o elemento
+                            this.blur(); //se o elemento ainda estiver em foco, usar essa função
+                        } else {
+                            this.setAttribute('tabindex', '0');
+                        }
+                        break;
+                }
+            }
+
+
+            _onKeyUp(event) {
+                if (event.altKey)
+                    return;
+
+                switch (event.keyCode) {
+                    case KEYCODE.SPACE:
+                        event.preventDefault();
+                        this._toggleChecked();
+                        break;
+                    default:
+                        return;
+                }
+            }
+
+            _onClick(event) {
+                this._toggleChecked();
+            }
+
+            //chama a função checked setter e inverte seu estado? 
+            _toggleChecked() {
+                if (this.disabled)
+                    return;
+                this.checked = !this.checked;
+                this.dispatchEvent(new CustomEvent('change', {
+                    detail: {
+                        checked: this.checked,
+                    },
+                    bubbles: true,
+                }));
+            }
+        }
+
+        window.customElements.define('howto-checkbox', HowToCheckbox);
+    })();
+
+</script>
+
+</html>
