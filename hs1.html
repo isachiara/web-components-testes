@@ -1,0 +1,24 @@
+<lista-hs>lista-hs de opções:</lista-hs>
+
+<script>
+// See https://html.spec.whatwg.org/multipage/indices.html#element-interfaces
+// for the list of other DOM interfaces.
+class Lista extends HTMLElement {
+  constructor() {
+    super(); // always call super() first in the constructor.
+    var ul = document.createElement("ul");
+    var item1 = document.createElement("li");
+    item1.innerHTML="ITEM 1";
+    var item2 = document.createElement("li");
+    item2.innerHTML="ITEM 2";
+    var item3 = document.createElement("li");
+    item3.innerHTML="ITEM 3";
+    ul.appendChild(item1);
+    ul.appendChild(item2);
+    ul.appendChild(item3);
+    this.appendChild(ul);
+  }
+}
+
+customElements.define('lista-hs', Lista);
+</script>
